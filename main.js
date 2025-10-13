@@ -6,7 +6,10 @@ const program = new Command();
 program
   .option('-i, --input <path>', 'input file path')
   .option('-o, --output <path>', 'output file path')
-  .option('-d, --display', 'display result in console');
+  .option('-d, --display', 'display result in console')
+  .option('-c, --cylinders', 'display model, cylinders and mpg')
+  .option('-m, --mpg <value>', 'show only cars with mpg lower than given value');
+
 
 program.parse(process.argv);
 const options = program.opts();
@@ -26,9 +29,27 @@ const fileContent = fs.readFileSync(options.input, 'utf-8');
 const lines = fileContent
   .split('\n')
   .filter(line => line.trim() !== '') 
-  .map(line => JSON.parse(line));     
+  .map(line => JSON.parse(line)); 
 
-const result = JSON.stringify(lines, null, 2);
+let resultData = lines;
+
+if (options.mpg) {
+  const mpgLimit = parseFloat(options.mpg);
+  resultData = resultData.filter(car => {
+    const mpg = parseFloat(car.mpg);
+    return !isNaN(mpg) && mpg < mpgLimit;
+  });
+}
+
+if (options.cylinders) {
+  resultData = resultData.map(car => ({
+    model: car.model || 'unknown',
+    cyl: car.cyl ?? 'N/A',
+    mpg: car.mpg ?? 'N/A'
+  }));
+}
+
+const result = resultData.map(car => `${car.model} ${car.cyl} ${car.mpg}`).join('\n');
 
 if (options.output) {
   fs.writeFileSync(options.output, result);
